@@ -1,0 +1,19 @@
+<main class="login-page">
+  <section class="login-story" aria-label="Cidade Viva — laboratório urbano">
+    <a class="brand" href="/login"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>Cidade Viva<span class="brand-caption">SMART CITY LAB</span></span></a>
+    <div class="login-story-content"><span class="eyebrow">LABORATÓRIO URBANO CONECTADO</span><h1>Uma cidade pequena.<br>Conexões reais.</h1><p>Observe a energia, acompanhe a água e entenda cada sinal da cidade.</p>
+      <div class="login-city" aria-hidden="true"><div class="city-line"></div><div class="city-building one"></div><div class="city-building two"></div><div class="city-building three"></div><div class="city-tree t1"></div><div class="city-tree t2"></div><div class="city-water"></div><span class="city-caption">ENERGIA <b>·</b> ÁGUA <b>·</b> MOBILIDADE</span></div>
+    </div><p class="login-footnote">Tecnologia que torna o invisível visível.</p>
+  </section>
+  <section class="login-form-section" aria-labelledby="login-title"><div class="login-form-wrap">
+    <span class="eyebrow">CENTRO DE OPERAÇÕES</span><h2 id="login-title">Bem-vindo à Cidade Viva</h2><p class="muted-text">Entre para acompanhar os dispositivos e a operação da maquete.</p>
+    @if (auth.notice()) { <p class="notice" role="status">{{ auth.notice() }}</p> }
+    @if (error()) { <p class="notice error" role="alert">{{ error() }}</p> }
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="field"><label for="username">Usuário</label><input id="username" name="username" autocomplete="username" formControlName="username" placeholder="Seu usuário" [attr.aria-invalid]="submitted() && form.controls.username.invalid" aria-describedby="username-error">@if (submitted() && form.controls.username.invalid) { <span id="username-error" class="field-error">Informe seu usuário.</span> }</div>
+      <div class="field"><label for="password">Senha</label><input id="password" name="password" type="password" autocomplete="current-password" formControlName="password" placeholder="Sua senha" [attr.aria-invalid]="submitted() && form.controls.password.invalid" aria-describedby="password-error">@if (submitted() && form.controls.password.invalid) { <span id="password-error" class="field-error">Informe sua senha.</span> }</div>
+      <button class="button primary login-submit" type="submit" [disabled]="busy()">{{ busy() ? 'Entrando…' : 'Entrar na plataforma' }}<span aria-hidden="true">→</span></button>
+    </form>
+    <div class="login-access-note"><span class="lock-icon" aria-hidden="true">⌑</span><p>Acesso restrito ao laboratório.<br><span class="muted-text">Seu perfil define as ações disponíveis.</span></p></div>
+  </div><span class="login-version">CIDADE VIVA · AMBIENTE LOCAL</span></section>
+</main>

@@ -1,0 +1,19 @@
+<a class="skip-link" [href]="router.url.split('#')[0] + '#main-content'">Pular para o conteúdo</a>
+<div class="app-shell">
+  <aside class="sidebar" [class.open]="menuOpen()" aria-label="Menu principal">
+    <a class="brand" routerLink="/dashboard"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>Cidade Viva<span class="brand-caption">SMART CITY LAB</span></span></a>
+    <span class="sidebar-caption">MONITORAMENTO</span>
+    <nav aria-label="Áreas da cidade">@for (item of nav; track item.path) { <a [routerLink]="item.path" routerLinkActive="active" ariaCurrentWhenActive="page"><span class="nav-icon" aria-hidden="true">{{ item.icon }}</span><span>{{ item.label }}</span>@if (item.path === '/alertas' && store.activeAlerts().length) { <span class="nav-count">{{ store.activeAlerts().length }}</span> }<span class="nav-number" aria-hidden="true">{{ item.section }}</span></a> }</nav>
+    <div class="sidebar-bottom"><div class="lab-indicator"><span class="status-dot" aria-hidden="true"></span>Laboratório local</div><p>Dois dispositivos.<br>Uma cidade conectada.</p><span class="sidebar-version">CIDADE VIVA / MVP 1.0</span></div>
+  </aside>
+  @if (menuOpen()) { <button type="button" class="menu-backdrop" aria-label="Fechar menu" (click)="menuOpen.set(false)"></button> }
+  <div class="workspace">
+    <header class="topbar"><div class="topbar-left"><button type="button" class="menu-toggle" [attr.aria-expanded]="menuOpen()" aria-label="Alternar menu de navegação" (click)="menuOpen.set(!menuOpen())">☰</button><span class="topbar-context">PLATAFORMA DE MONITORAMENTO</span></div><div class="topbar-actions"><span class="connection-label" [class.disconnected]="store.live.status() !== 'connected'" role="status"><span class="status-dot" aria-hidden="true"></span>{{ connectionLabel() }}</span><span class="topbar-divider" aria-hidden="true"></span><div class="user-identity"><span class="avatar" aria-hidden="true">{{ auth.user()?.username?.slice(0, 1)?.toUpperCase() }}</span><span><strong>{{ auth.user()?.username }}</strong><small>{{ auth.operator() ? 'Operador' : 'Consulta' }}</small></span></div><button type="button" class="text-button logout-button" (click)="auth.logout()">Sair</button></div></header>
+    <main id="main-content" tabindex="-1" class="main-content">
+      @if (store.error()) { <div class="notice error" role="alert"><span>{{ store.error() }}</span><button type="button" class="text-button" (click)="store.refresh()">Tentar novamente</button></div> }
+      @if (store.actionError()) { <div class="notice error" role="alert"><span>{{ store.actionError() }}</span><button type="button" class="text-button" (click)="store.actionError.set('')">Fechar aviso</button></div> }
+      <router-outlet />
+    </main>
+    <footer class="workspace-footer"><span>SMART CITY LAB <span aria-hidden="true">/</span> Cidade Viva</span><span>{{ store.updatedAt() ? 'Atualizado às ' + (store.updatedAt() | date:'HH:mm:ss') : 'Aguardando primeira consulta' }}</span></footer>
+  </div>
+</div>
