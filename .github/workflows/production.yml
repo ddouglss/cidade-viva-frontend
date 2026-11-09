@@ -69,5 +69,5 @@ jobs:
           COOLIFY_DEPLOY_TOKEN: ${{ secrets.COOLIFY_DEPLOY_TOKEN }}
         run: |
           test -n "$COOLIFY_DEPLOY_URL" && test -n "$COOLIFY_DEPLOY_TOKEN"
-          curl --fail --silent --show-error --connect-timeout 10 --max-time 40 \
+          curl --request POST --fail --silent --show-error --connect-timeout 10 --max-time 40 \
             --output /dev/null --header "Authorization: Bearer $COOLIFY_DEPLOY_TOKEN" "$COOLIFY_DEPLOY_URL"
