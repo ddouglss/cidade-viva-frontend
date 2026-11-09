@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { CityStore } from './city-store';
 import { CityApi } from './api';
 import { AuthService } from './auth';
@@ -44,6 +45,60 @@ describe('Estado da cidade e comandos',()=>{
     expect(store.water()?.online).toBe(false);expect(store.water()?.isStale).toBe(true);
     expect(store.error()).not.toBe('');
     expect(store.blocked(device,'PUMP_PULSE')).not.toBe('');
+  });
+  it('consulta novamente quando o SignalR atualiza durante um snapshot', async () => {
+    let resolve!: (devices: Device[]) => void;
+    const updated = { ...device, online: false, isStale: true };
+    api.devices.mockImplementationOnce(() => new Promise<Device[]>(r => resolve = r));
+    api.devices.mockResolvedValue([updated]);
+    const inFlight = store.refresh();
+    const requestCount = api.devices.mock.calls.length;
+    vi.useFakeTimers();
+    try {
+      const onSignalRUpdate = live.start.mock.calls[0][1] as () => void;
+      onSignalRUpdate();
+      onSignalRUpdate();
+      await vi.advanceTimersByTimeAsync(120);
+      expect(api.devices).toHaveBeenCalledTimes(requestCount);
+      resolve([device]);
+      await inFlight;
+      await store.refresh();
+      expect(api.devices).toHaveBeenCalledTimes(requestCount + 1);
+      expect(store.water()).toEqual(updated);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it('mantém comando indeterminado bloqueado até consultar o mesmo UUID', async () => {
+    api.requestCommand.mockRejectedValue(new HttpErrorResponse({ status: 0 }));
+    await store.send(device, 'PUMP_PULSE', { durationMs: 100 });
+    const command = store.commands()[0];
+    expect(command.status).toBe('UNCONFIRMED');
+    api.command.mockRejectedValueOnce(new HttpErrorResponse({ status: 404 }));
+    await store.checkCommand(command.commandId);
+    expect(store.commands()[0].reason).toBe('COMMAND_LOOKUP_NOT_FOUND');
+    const requestCount = api.devices.mock.calls.length;
+    store.scheduleRefresh();
+    await vi.waitFor(() => expect(api.devices.mock.calls.length).toBeGreaterThan(requestCount));
+    expect(api.command).toHaveBeenCalledTimes(1);
+    await store.send(device, 'PUMP_PULSE', { durationMs: 100 });
+    expect(api.requestCommand).toHaveBeenCalledTimes(1);
+    api.command.mockResolvedValueOnce({ ...command, status: 'TIMED_OUT', reason: 'TIMED_OUT' });
+    await store.checkCommand(command.commandId);
+    expect(store.commands()[0].status).toBe('TIMED_OUT');
+    expect(store.pending(device.deviceKey)).toBe(false);
+    expect(store.water()?.actuators['pumpOn']).toBe(false);
+  });
+  it('preserva pendentes ao limitar comandos concluídos', async () => {
+    api.requestCommand.mockRejectedValue(new HttpErrorResponse({ status: 0 }));
+    await store.send(device, 'PUMP_PULSE', { durationMs: 100 });
+    const pending = store.commands()[0];
+    for (let i = 0; i < 51; i++) {
+      store.mergeCommand({ ...pending, commandId: 'completed-' + i, status: 'REJECTED' });
+    }
+    expect(store.commands()).toHaveLength(51);
+    expect(store.pending(device.deviceKey)).toBe(true);
+    expect(store.commands()).toContain(pending);
   });
   it('descarta dados da sessão após logout',()=>{
     user.set(null);TestBed.tick();expect(store.devices()).toEqual([]);expect(store.commands()).toEqual([]);expect(live.stop).toHaveBeenCalled();

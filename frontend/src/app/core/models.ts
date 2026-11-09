@@ -29,3 +29,52 @@ export interface Reading {
 }
 export interface Page<T> { items: T[]; page: number; pageSize: number; totalCount: number }
 export const terminalCommand = (status: CommandStatus) => ['APPLIED', 'REJECTED', 'EXPIRED', 'TIMED_OUT', 'FAILED'].includes(status);
+
+export interface WifiNetwork {
+  ssid: string;
+  rssi: number;
+  signalPercent: number;
+  channel: number;
+  band: string;
+  auth: string;
+  isCurrentNotebookNetwork: boolean;
+  source: string;
+}
+
+export interface Esp32PortStatus {
+  port: string;
+  deviceId: string;
+  phase: string;
+  connected: boolean;
+  ssid: string;
+  ip: string;
+  rssi: number;
+  transport: string;
+}
+
+export interface WifiProvisionOverview {
+  notebookSsid: string | null;
+  notebookBand: string | null;
+  notebookSignalPercent: number | null;
+  networks: WifiNetwork[];
+  detectedBoards: Esp32PortStatus[];
+  scannedAt: string;
+}
+
+export interface WifiConnectRequest {
+  ssid: string;
+  password?: string;
+  targetPort?: string;
+  targetHost?: string;
+  deviceKey?: string;
+}
+
+export interface WifiConnectResult {
+  connected: boolean;
+  target: string;
+  ssid: string;
+  ip: string | null;
+  message: string;
+  completedAt: string;
+}
+

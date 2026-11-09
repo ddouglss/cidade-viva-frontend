@@ -26,6 +26,7 @@ export class CityStore {
   private session = 0;
   private queued?: ReturnType<typeof setTimeout>;
   private inFlight?: Promise<void>;
+  private refreshAgain = false;
   private polling = false;
 
   constructor() {
@@ -34,6 +35,7 @@ export class CityStore {
       const generation = ++this.session;
       this.devices.set([]); this.alerts.set([]); this.commands.set([]); this.updatedAt.set(null); this.error.set(''); this.actionError.set('');
       this.loading.set(!!user); this.inFlight = undefined; this.refreshing.set(false);
+      this.refreshAgain = false;
       if (!user) { void this.live.stop(); return; }
       void this.refresh();
       void this.live.start(() => this.auth.accessToken() ?? '', () => this.scheduleRefresh(generation), c => {
@@ -45,7 +47,12 @@ export class CityStore {
   }
   scheduleRefresh(generation = this.session) {
     clearTimeout(this.queued);
-    this.queued = setTimeout(() => { if (generation === this.session) { void this.refresh(); void this.pollCommands(); } }, 120);
+    this.queued = setTimeout(() => {
+      if (generation !== this.session) return;
+      if (this.inFlight) this.refreshAgain = true;
+      else void this.refresh();
+      void this.pollCommands();
+    }, 120);
   }
   refresh(): Promise<void> {
     if (!this.auth.user()) return Promise.resolve();
@@ -56,7 +63,16 @@ export class CityStore {
       if (generation !== this.session) return;
       this.devices.set(devices); this.alerts.set(alerts); this.updatedAt.set(new Date()); this.error.set('');
     }).catch(error => { if (generation === this.session) { this.error.set(friendlyError(error)); this.devices.update(devices => devices.map(d => ({...d,online:false,isStale:true}))); } })
-      .finally(() => { if (generation === this.session) { this.loading.set(false); this.refreshing.set(false); this.inFlight = undefined; } });
+      .finally(() => {
+        if (generation !== this.session) return;
+        this.loading.set(false);
+        this.refreshing.set(false);
+        this.inFlight = undefined;
+        if (this.refreshAgain) {
+          this.refreshAgain = false;
+          void this.refresh();
+        }
+      });
     return this.inFlight;
   }
   pending(key: string) { return this.commands().some(c => c.deviceKey === key && !terminalCommand(c.status)); }
@@ -88,17 +104,34 @@ export class CityStore {
     const phases = ['REQUESTED', 'PENDING', 'PUBLISHED', 'RECEIVED'];
     if (current && phases.includes(current.status) && phases.includes(command.status) && phases.indexOf(command.status) < phases.indexOf(current.status)) return;
     // Show only commands requested/queried in this UI session; another operator's events do not silently expand the list.
-    this.commands.update(items => [command, ...items.filter(c => c.commandId !== command.commandId)].slice(0, 50));
+    this.commands.update(items => {
+      const updated = [command, ...items.filter(c => c.commandId !== command.commandId)];
+      let completed = 0;
+      return updated.filter(c => !terminalCommand(c.status) || ++completed <= 50);
+    });
   }
   async checkCommand(id: string) {
     const generation = this.session;
     try { const result = await this.api.command(id); if (generation === this.session) { this.mergeCommand(result); this.actionError.set(''); } }
-    catch (error) { if (generation === this.session) this.actionError.set(friendlyError(error)); }
+    catch (error) {
+      if (generation !== this.session) return;
+      const current = this.commands().find(c => c.commandId === id);
+      if (current?.status === 'UNCONFIRMED' && error instanceof HttpErrorResponse && error.status === 404) {
+        this.mergeCommand({ ...current, reason: 'COMMAND_LOOKUP_NOT_FOUND' });
+        this.actionError.set('');
+        return;
+      }
+      this.actionError.set(friendlyError(error));
+    }
   }
   private async pollCommands() {
     if (this.polling || !this.auth.user()) return;
     this.polling = true;
-    try { await Promise.all(this.commands().filter(c => c.status !== 'REQUESTED' && !terminalCommand(c.status)).map(c => this.checkCommand(c.commandId))); }
+    try {
+      const active = this.commands().filter(c => c.status !== 'REQUESTED' && !terminalCommand(c.status)
+        && !(c.status === 'UNCONFIRMED' && c.reason === 'COMMAND_LOOKUP_NOT_FOUND'));
+      await Promise.all(active.map(c => this.checkCommand(c.commandId)));
+    }
     finally { this.polling = false; }
   }
   async acknowledge(alert: CityAlert) {

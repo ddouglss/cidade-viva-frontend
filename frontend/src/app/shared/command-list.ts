@@ -19,6 +19,11 @@ import { terminalCommand } from '../core/models';
   </div>` })
 export class CommandList {
   readonly store = inject(CityStore); readonly deviceKey = input<string | undefined>(); readonly limit = input(4);
-  readonly items = computed(() => this.store.commands().filter(c => !this.deviceKey() || c.deviceKey === this.deviceKey()).slice(0, this.limit()));
+  readonly items = computed(() => {
+    const commands = this.store.commands().filter(c => !this.deviceKey() || c.deviceKey === this.deviceKey());
+    const pending = commands.filter(c => !terminalCommand(c.status));
+    const completed = commands.filter(c => terminalCommand(c.status));
+    return [...pending, ...completed.slice(0, Math.max(0, this.limit() - pending.length))];
+  });
   readonly action = actionLabel; readonly label = commandLabel; readonly reason = reasonLabel; readonly terminal = terminalCommand;
 }
