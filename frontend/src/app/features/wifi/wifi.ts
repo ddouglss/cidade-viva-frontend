@@ -13,9 +13,28 @@ import { PageHeading } from '../../shared/page-heading';
     <cv-page-heading
       eyebrow="13 / REDE WI-FI DAS PLACAS"
       title="Conexão Wi-Fi das placas ESP32"
-      subtitle="Visualize as redes 2,4 GHz disponíveis e conecte os controladores de Energia e Hidráulica na mesma rede do notebook."
+      subtitle="Configure a rede das placas instaladas e acompanhe a reconexão no painel de dispositivos."
     />
 
+    @if (isHosted) {
+      <section class="panel" aria-labelledby="wifi-local-title">
+        <div class="panel-heading">
+          <div>
+            <span class="eyebrow">CONFIGURAÇÃO NA MAQUETE</span>
+            <h2 id="wifi-local-title">Trocar o Wi-Fi sem retirar a placa</h2>
+          </div>
+        </div>
+        <div class="control-section">
+          <ol class="plain-list">
+            <li>Quando a placa perder o Wi-Fi por cerca de 30 segundos, conecte o notebook ou celular à rede <strong>CidadeViva-Energy</strong> ou <strong>CidadeViva-Water</strong> usando a senha própria da placa registrada na instalação.</li>
+            <li>Abra o portal local e informe o novo Wi-Fi de 2,4 GHz, a senha da rede e o IP privado do notebook que executa a ponte MQTT.</li>
+            <li>Após salvar, reconecte seu notebook à rede normal e confira o estado em <a href="/dispositivos">Dispositivos ESP32</a>.</li>
+          </ol>
+          <a class="button primary" href="http://192.168.4.1/" target="_blank" rel="noopener noreferrer">Abrir portal local da placa</a>
+          <p class="control-help">O portal só abre enquanto você estiver conectado à rede da placa. Em redes com isolamento de dispositivos, use um hotspot 2,4 GHz próprio para a demonstração.</p>
+        </div>
+      </section>
+    } @else {
     <div class="overview-stats">
       <div class="stat">
         <span class="stat-label">REDE DO NOTEBOOK</span>
@@ -336,9 +355,11 @@ import { PageHeading } from '../../shared/page-heading';
         </div>
       </aside>
     </div>
+    }
   `
 })
 export class WifiSetup implements OnInit {
+  readonly isHosted = typeof window !== 'undefined' && !['localhost', '127.0.0.1'].includes(window.location.hostname);
   readonly api = inject(CityApi);
   readonly store = inject(CityStore);
   readonly name = deviceName;
@@ -372,7 +393,7 @@ export class WifiSetup implements OnInit {
   );
 
   ngOnInit() {
-    void this.scanNetworks();
+    if (!this.isHosted) void this.scanNetworks();
   }
 
   onModeChange(mode: 'AUTO' | 'WIFI_HTTP' | 'USB_PORT') {
