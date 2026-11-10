@@ -26,7 +26,7 @@ import { PageHeading } from '../../shared/page-heading';
         </div>
         <div class="control-section">
           <ol class="plain-list">
-            <li>Quando a placa perder o Wi-Fi por cerca de 30 segundos, conecte o notebook ou celular à rede <strong>CidadeViva-Energy</strong> ou <strong>CidadeViva-Water</strong> usando a senha própria da placa registrada na instalação.</li>
+            <li>Com a placa ligada, conecte o notebook ou celular à rede <strong>CidadeViva-Energy</strong> ou <strong>CidadeViva-Water</strong> usando a senha própria da placa registrada na instalação. A rede da placa permanece disponível mesmo com o Wi-Fi normal conectado.</li>
             <li>Abra o portal local e informe o novo Wi-Fi de 2,4 GHz, a senha da rede e o IP privado do notebook que executa a ponte MQTT.</li>
             <li>Após salvar, reconecte seu notebook à rede normal e confira o estado em <a href="/dispositivos">Dispositivos ESP32</a>.</li>
           </ol>
