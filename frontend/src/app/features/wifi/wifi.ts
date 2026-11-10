@@ -30,8 +30,17 @@ import { PageHeading } from '../../shared/page-heading';
             <li>Abra o portal local e informe o novo Wi-Fi de 2,4 GHz, a senha da rede e o IP privado do notebook que executa a ponte MQTT.</li>
             <li>Após salvar, reconecte seu notebook à rede normal e confira o estado em <a href="/dispositivos">Dispositivos ESP32</a>.</li>
           </ol>
-          <a class="button primary" href="http://192.168.4.1/" target="_blank" rel="noopener noreferrer">Abrir portal local da placa</a>
-          <p class="control-help">O portal só abre enquanto você estiver conectado à rede da placa. Em redes com isolamento de dispositivos, use um hotspot 2,4 GHz próprio para a demonstração.</p>
+          <button type="button" class="button primary" [attr.aria-expanded]="portalInstructionsOpen()" aria-controls="portal-access-steps" (click)="portalInstructionsOpen.set(!portalInstructionsOpen())">Abrir portal local da placa</button>
+          @if (portalInstructionsOpen()) {
+            <div id="portal-access-steps" class="notice section-gap" role="status">
+              <div>
+                <strong>Conecte-se primeiro à rede da placa</strong>
+                <p>Escolha <code>CidadeViva-Energy</code> ou <code>CidadeViva-Water</code> no Wi-Fi deste notebook. Use a senha da placa salva na instalação. Enquanto o notebook estiver nessa rede, ele sairá temporariamente do hotspot e a ponte MQTT ficará indisponível.</p>
+                <p>Depois de conectar, abra o endereço abaixo. Se a rede da placa não aparecer, confirme que ela está alimentada. O site não consegue abrir o portal pela internet nem pelo IP da placa no hotspot.</p>
+                <a class="button secondary" href="http://192.168.4.1/" target="_blank" rel="noopener noreferrer">Já conectei à rede da placa — abrir 192.168.4.1</a>
+              </div>
+            </div>
+          }
         </div>
       </section>
     } @else {
@@ -360,6 +369,7 @@ import { PageHeading } from '../../shared/page-heading';
 })
 export class WifiSetup implements OnInit {
   readonly isHosted = typeof window !== 'undefined' && !['localhost', '127.0.0.1'].includes(window.location.hostname);
+  readonly portalInstructionsOpen = signal(false);
   readonly api = inject(CityApi);
   readonly store = inject(CityStore);
   readonly name = deviceName;
